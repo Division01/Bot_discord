@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 from discord import Intents, Client, Message
-from responses import get_response
+from inspiration.responses import get_response
 
 # STEP 0: LOAD OUR TOKEN FROM SOMEWHERE SAFE
 load_dotenv()
