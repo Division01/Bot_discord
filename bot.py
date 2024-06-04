@@ -6,15 +6,15 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
-# Load tokens from .env file
+### Load tokens from .env file
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 TARGET_DATE = datetime(2024, 6, 12, 12, 0)
 IMAGE_THEME = " Deus Vult "
+# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-# Load the libraries classes
-client = OpenAI(api_key=OPENAI_API_KEY)
+### Load the libraries classes
+# client = OpenAI(api_key=OPENAI_API_KEY)
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -82,12 +82,10 @@ async def countdown_task():
     days_left = compute_days_left(time_difference=(TARGET_DATE - now))
     print(now)
     print(days_left)
-    message = countdown_to_date()
-    image_url = generate_image(days_left)
     if now.hour == 15 and days_left != 0:  # Adjust the hour as needed to set the time for the daily message
         print("It's decompte time")
         message = countdown_to_date()
-        image_url = generate_image(days_left)
+        # image_url = generate_image(days_left)
         for guild in bot.guilds:
             print(f"It's decompte time : {message}")
             for channel in guild.text_channels:
@@ -95,7 +93,7 @@ async def countdown_task():
                 if channel.permissions_for(guild.me).send_messages:
                     print("Permission had !")
                     await channel.send(message)
-                    await channel.send(image_url)
+                    # await channel.send(image_url)
                     print("Message and image sent!")
                     break
 
@@ -126,5 +124,5 @@ async def on_ready():
     print(f'Logged in as {bot.user}')
     countdown_task.start()  # Start the countdown task once the bot is ready
 
-# Start the bot
+### Start the bot
 bot.run(DISCORD_TOKEN)
