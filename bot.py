@@ -3,18 +3,18 @@ from discord.ext import tasks, commands
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-import openai
-import requests
+from openai import OpenAI
+
 
 # Load tokens from .env file
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 TARGET_DATE = datetime(2024, 6, 12, 12, 0)
-IMAGE_THEME = "Deus Vult"
+IMAGE_THEME = " Deus Vult "
 
-openai.api_key = OPENAI_API_KEY
 
+client = OpenAI(api_key=OPENAI_API_KEY)
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -37,12 +37,10 @@ def countdown_to_date():
 
 def generate_image(days_left):
     text = f"Related to {IMAGE_THEME} and the fact that there is {days_left}. It can be a meme."
-    response = openai.Image.create(
-        prompt=text,
-        n=1,
-        size="1024x512"
-    )
-    image_url = response['data'][0]['url']
+    response = client.images.generate(prompt=text,
+    n=1,
+    size="1024x512")
+    image_url = response.data[0].url
     return image_url
 
 @tasks.loop(hours=1)
