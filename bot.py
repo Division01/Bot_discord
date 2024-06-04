@@ -13,15 +13,33 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 TARGET_DATE = datetime(2024, 6, 12, 12, 0)
 IMAGE_THEME = " Deus Vult "
 
-
+# Load the libraries classes
 client = OpenAI(api_key=OPENAI_API_KEY)
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 def compute_days_left(time_difference):
+    """
+    Needed the same way to compute days in both coutdown_to_date
+    and countdown_task. Might be uneeded when the +1 is corrected.
+
+
+    Args:
+        time_difference (datetime): TARGET_DATE - now
+
+    Returns:
+        days_left: The correct number of days left
+    """
     return time_difference.days + 1
 
 def countdown_to_date():
+    """
+    Generates a message of the countdown. It adapts for the last
+    24 hours to make an hourly countdown message.
+
+    Returns:
+        countdown_message(string): Countdown message.
+    """
     now = datetime.now()
     time_difference = TARGET_DATE - now
     days = compute_days_left(time_difference=time_difference)
@@ -36,6 +54,16 @@ def countdown_to_date():
         return "The target date has passed, bot is now useless."
 
 def generate_image(days_left):
+    """
+    Generates an image based on the text. It adapts to the days left
+    and generates an image according to the IMAGE_THEME. 
+
+    Args:
+        days_left (int): Number of days left in countdown.
+
+    Returns:
+        image_url(str): The URL of the image generated.
+    """
     text = f"Related to {IMAGE_THEME} and the fact that there is {days_left}. It can be a meme."
     response = client.images.generate(prompt=text,
     n=1,
@@ -45,6 +73,11 @@ def generate_image(days_left):
 
 @tasks.loop(hours=1)
 async def countdown_task():
+    """
+    Main task of the bot. It check how many days are left 
+    and generate a countdown message, an associated image 
+    and then post it in the first channel available to him.
+    """
     now = datetime.now()
     days_left = compute_days_left(time_difference=(TARGET_DATE - now))
     print(now)
@@ -78,10 +111,18 @@ async def countdown_task():
 
 @countdown_task.before_loop
 async def before():
+    """
+    Function that makes the bot wait for the hourly loop
+    before running the task.
+    """
     await bot.wait_until_ready()
 
 @bot.event
 async def on_ready():
+    """
+    Necessary on_ready function to know when we can start
+    giving instructions to the discord bot.
+    """
     print(f'Logged in as {bot.user}')
     countdown_task.start()  # Start the countdown task once the bot is ready
 
