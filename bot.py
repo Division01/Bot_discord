@@ -10,11 +10,8 @@ from openai import OpenAI
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 TARGET_DATE = datetime(2024, 6, 12, 12, 0)
-IMAGE_THEME = " Deus Vult "
-# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 ### Load the libraries classes
-# client = OpenAI(api_key=OPENAI_API_KEY)
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -53,23 +50,29 @@ def countdown_to_date():
     else:
         return "The target date has passed, bot is now useless."
 
+
 def generate_image(days_left):
-    """
-    Generates an image based on the text. It adapts to the days left
-    and generates an image according to the IMAGE_THEME. 
+    import requests
+    import base64
 
-    Args:
-        days_left (int): Number of days left in countdown.
+    # Define the URL and the payload to send.
+    url = "http://127.0.0.1:7860"
 
-    Returns:
-        image_url(str): The URL of the image generated.
-    """
-    text = f"Related to {IMAGE_THEME} and the fact that there is {days_left}. It can be a meme."
-    response = client.images.generate(prompt=text,
-    n=1,
-    size="1024x1024")
-    image_url = response.data[0].url
-    return image_url
+    payload = {
+        "prompt": f"{days_left} crusader knights, flag with 'Deus Vult' on it",
+        "steps": 50
+    }
+
+    # Send said payload to said URL through the API.
+    response = requests.post(url=f'{url}/sdapi/v1/txt2img', json=payload)
+    r = response.json()
+
+    # Decode and save the image.
+    with open(f"images/output{days_left}.png", 'wb') as f:
+        f.write(base64.b64decode(r['images'][0]))
+
+
+
 
 @tasks.loop(hours=1)
 async def countdown_task():
@@ -78,14 +81,15 @@ async def countdown_task():
     and generate a countdown message, an associated image 
     and then post it in the first channel available to him.
     """
+
     now = datetime.now()
     days_left = compute_days_left(time_difference=(TARGET_DATE - now))
     print(now)
     print(days_left)
-    if now.hour == 15 and days_left != 0:  # Adjust the hour as needed to set the time for the daily message
+    if now.hour == 14 and days_left != 0:  # Adjust the hour as needed to set the time for the daily message
         print("It's decompte time")
         message = countdown_to_date()
-        # image_url = generate_image(days_left)
+        generate_image(days_left)
         for guild in bot.guilds:
             print(f"It's decompte time : {message}")
             for channel in guild.text_channels:
@@ -93,18 +97,16 @@ async def countdown_task():
                 if channel.permissions_for(guild.me).send_messages:
                     print("Permission had !")
                     await channel.send(message)
-                    # await channel.send(image_url)
+                    await channel.send(file=discord.File(f'images/output{days_left}.png', f'image{days_left}.png'))
                     print("Message and image sent!")
                     break
 
     if days_left == 0:
         message = countdown_to_date()
-        image_url = generate_image(message)
         for guild in bot.guilds:
             for channel in guild.text_channels:
                 if channel.permissions_for(guild.me).send_messages:
                     await channel.send(message)
-                    await channel.send(image_url)
                     break
 
 @countdown_task.before_loop
