@@ -1,22 +1,26 @@
 import discord
 from discord.ext import tasks, commands
 from datetime import datetime
+import time
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-
+import asyncio
 
 ### Load tokens from .env file
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-TARGET_DATE = datetime(2024, 6, 12, 15, 0)
-TARGET_HOUR = 14
+TARGET_DATE = datetime(2024, 6, 12, 14, 0)
+TARGET_HOUR = 13
 
 ### Load the libraries classes
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-
+def compute_time_difference():
+    now = datetime.now()
+    time_difference=TARGET_DATE - now
+    return time_difference
 
 def countdown_to_date():
     """
@@ -26,16 +30,17 @@ def countdown_to_date():
     Returns:
         countdown_message(string): Countdown message.
     """
-    now = datetime.now()
-    time_difference = TARGET_DATE - now
+    time_difference = compute_time_difference()
     days = time_difference.days
     print(time_difference.seconds)
     hours, remainder = divmod(time_difference.seconds, 3600)
 
     if days > 0:
         return f"Days left before temporis: {days}"
-    elif days == 0:
+    elif days == 0 and hours > 0:
         return f"Hours left before temporis: {hours}"
+    elif days == 0 and hours == 0:
+        return "It's go time !"
     else:
         return "The target date has passed, bot is now useless."
 
@@ -64,7 +69,6 @@ def generate_image(days_left):
 
 
 
-
 @tasks.loop(hours=1)
 async def countdown_task():
     """
@@ -73,9 +77,8 @@ async def countdown_task():
     and then post it in the first channel available to him.
     """
     now = datetime.now()
-    time_difference=TARGET_DATE - now
+    time_difference=compute_time_difference()
     days_left = time_difference.days
-    print(now)
     print(days_left)
     if now.hour == TARGET_HOUR and days_left != 0:  # Adjust the hour as needed to set the time for the daily message
         print("It's decompte time")
@@ -96,7 +99,7 @@ async def countdown_task():
         message = countdown_to_date()
         generate_image(days_left)
         for guild in bot.guilds:
-            print(f"In {guild} t's decompte time : {message}")
+            print(f"In {guild} decompte time : {message}")
             for channel in guild.text_channels:
                 print(f"Canal : {channel}")
                 if channel.permissions_for(guild.me).send_messages:
@@ -108,18 +111,14 @@ async def countdown_task():
 
 @countdown_task.before_loop
 async def before():
-    """
-    Function that makes the bot wait for the hourly loop
-    before running the task.
-    """
     await bot.wait_until_ready()
+    now = datetime.now()
+    seconds_until_next_hour = (60 - now.minute) * 60 - now.second - 15
+    print(f"Waiting {60 - now.minute} minutes and {now.second} seconds before running the bot.")
+    await asyncio.sleep(seconds_until_next_hour)
 
 @bot.event
 async def on_ready():
-    """
-    Necessary on_ready function to know when we can start
-    giving instructions to the discord bot.
-    """
     print(f'Logged in as {bot.user}')
     countdown_task.start()  # Start the countdown task once the bot is ready
 
